@@ -20,6 +20,8 @@
     rust.enable = true;
   };
 
+  dotenv.enable = true;
+
   env = {
     OPENSSL_DIR = "${pkgs.openssl.dev}";
     OPENSSL_LIB_DIR = "${pkgs.openssl.out}/lib";
