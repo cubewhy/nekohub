@@ -1,0 +1,14 @@
+services:
+  postgres:
+    image: postgres:18
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_DB: "nekohub"
+      POSTGRES_USER: "postgres"
+      POSTGRES_PASSWORD: "password"
+    volumes:
+      - pg_data:/var/lib/postgresql
+
+volumes:
+  pg_data:
