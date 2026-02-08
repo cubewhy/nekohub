@@ -29,6 +29,9 @@ impl Application {
         // connect to database and get the pool
         let pool = PgPool::connect(db_url).await?;
 
+        // apply migrations
+        sqlx::migrate!("./migrations").run(&pool).await?;
+
         // Initial state
         let state = AppState { pool };
 
