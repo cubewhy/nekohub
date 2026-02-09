@@ -5,6 +5,7 @@ use nekohub::{
     startup::Application,
     telemetry::{get_subscriber, init_subscriber},
 };
+use tracing::instrument;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -23,6 +24,7 @@ async fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
+#[instrument(name = "config_probe")]
 fn probe_config() -> Vec<String> {
     let mut config_files = vec!["configuration/application.toml".to_string()];
 
