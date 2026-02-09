@@ -7,11 +7,18 @@ pub struct Settings {
 }
 
 impl Settings {
-    pub fn try_load(path: &str) -> Result<Self, config::ConfigError> {
-        let settings = Config::builder()
-            .add_source(config::File::with_name(path))
-            .add_source(config::Environment::with_prefix("APP"))
-            .build()?;
+    pub fn try_load_single(file: &str) -> Result<Self, config::ConfigError> {
+        Self::try_load(&[file])
+    }
+
+    pub fn try_load(files: &[&str]) -> Result<Self, config::ConfigError> {
+        let mut settings = Config::builder().add_source(config::Environment::with_prefix("APP"));
+
+        for file_name in files {
+            settings = settings.add_source(config::File::with_name(file_name));
+        }
+
+        let settings = settings.build()?;
 
         settings.try_deserialize::<Self>()
     }

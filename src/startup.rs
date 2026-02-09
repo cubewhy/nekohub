@@ -14,6 +14,7 @@ use crate::{
 pub struct Application {
     listener: tokio::net::TcpListener,
     state: Arc<AppState>,
+    port: u16,
 }
 
 impl Application {
@@ -25,6 +26,7 @@ impl Application {
 
         // Create the TCPListener for further usage
         let lst = tokio::net::TcpListener::bind(format!("{}:{}", host, port)).await?;
+        let port = lst.local_addr()?.port();
 
         // connect to database and get the pool
         let pool = PgPool::connect(db_url).await?;
@@ -40,6 +42,7 @@ impl Application {
         Ok(Self {
             listener: lst,
             state,
+            port,
         })
     }
 
@@ -65,6 +68,10 @@ impl Application {
             .route("/user/register", post(register_user))
             .route("/user/login", post(login))
             .with_state(self.state.clone())
+    }
+
+    pub fn port(&self) -> u16 {
+        self.port
     }
 }
 
