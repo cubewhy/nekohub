@@ -346,3 +346,36 @@ pub async fn refresh_token(
         refresh_token: new_refresh_token,
     }))
 }
+
+#[derive(serde::Serialize)]
+pub struct UserInfoResponse {
+    id: i64,
+    username: String,
+    // TODO: response role, bio after the systems implemented
+}
+
+#[instrument(skip(state, claims))]
+pub async fn user_info(
+    claims: JwtClaims,
+    State(state): State<Arc<AppState>>,
+) -> Result<Json<UserInfoResponse>> {
+    // TODO: write tests for the user_info endpoint
+    let user_id = claims.user_id;
+
+    // query user in database
+    let user = sqlx::query!(
+        r#"
+    SELECT id, username FROM users
+    WHERE id = $1
+    "#,
+        user_id
+    )
+    .fetch_one(&state.db)
+    .await
+    .context("Failed to execute query")?;
+
+    Ok(Json(UserInfoResponse {
+        id: user.id,
+        username: user.username,
+    }))
+}

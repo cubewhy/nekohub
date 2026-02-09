@@ -1,13 +1,16 @@
 use std::sync::Arc;
 
-use axum::{Router, routing::post};
+use axum::{
+    Router,
+    routing::{get, post},
+};
 use sqlx::PgPool;
 use tower_http::trace::TraceLayer;
 use tracing::{Level, event, instrument};
 
 use crate::{
     configuration::Settings,
-    handlers::{login, refresh_token, register_user},
+    handlers::{login, refresh_token, register_user, user_info},
 };
 
 #[derive(Debug)]
@@ -75,6 +78,7 @@ impl Application {
             .route("/user/register", post(register_user))
             .route("/user/login", post(login))
             .route("/user/refresh", post(refresh_token))
+            .route("/user/info", get(user_info))
             .with_state(self.state.clone())
     }
 

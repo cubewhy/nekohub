@@ -11,13 +11,13 @@ use crate::{
     startup::AppState,
 };
 
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct JwtClaims {
     exp: usize,
     iat: usize,
     jti: Uuid,
 
-    user_id: i64,
+    pub user_id: i64,
 }
 
 impl JwtClaims {
