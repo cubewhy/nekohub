@@ -188,3 +188,50 @@ async fn register_user_failure_when_no_password_provided() {
         "Service should not create user when the request fails, expected None on variable user_option",
     );
 }
+
+#[tokio::test]
+async fn login_success_with_correct_credentials_provided() {
+    let app = TestApp::new().await;
+
+    let username = app.test_user.username;
+    let password = app.test_user.password;
+
+    // we can use the test_user now
+    // login with the test_user credentials
+    let res = app
+        .http_client
+        .post(format!("{}/user/login", app.base_url))
+        .json(&json!({
+            "username": username,
+            "password": password
+        }))
+        .send()
+        .await
+        .expect("Failed to send login request");
+
+    // the status code should be 200 OK
+    assert_eq!(
+        res.status(),
+        StatusCode::OK,
+        "Login status code is not 200 OK"
+    );
+
+    // the access_token and refresh_token field should exist in the response body
+    let body: serde_json::Value = res
+        .json()
+        .await
+        .expect("Failed to receive login response body");
+
+    assert!(body.is_object(), "Response body should be an object");
+    let body = body.as_object().unwrap();
+    assert!(
+        body.contains_key("access_token"),
+        "No access_token field exists in auth response. response={:?}",
+        body
+    );
+    assert!(
+        body.contains_key("refresh_token"),
+        "No refresh_token field exists in auth response. response={:?}",
+        body
+    );
+}

@@ -22,11 +22,18 @@ static TRACING: LazyLock<()> = LazyLock::new(|| {
     }
 });
 
+pub struct TestUser {
+    pub username: String,
+    pub password: String,
+    // TODO: add token field after login api implemented
+}
+
 pub struct TestApp {
     _db_guard: DbGuard,
     pub base_url: String,
     pub http_client: reqwest::Client,
     pub db: PgPool,
+    pub test_user: TestUser,
     _handle: JoinHandle<Result<(), std::io::Error>>,
 }
 
@@ -63,6 +70,9 @@ impl TestApp {
             db_url: db_url.clone(),
         };
 
+        // init test user
+        let test_user = setup_test_user(&db).await;
+
         // build the server
         let app = Application::build(&cfg)
             .await
@@ -82,9 +92,33 @@ impl TestApp {
             _handle: handle,
             base_url,
             http_client,
+            test_user,
             db,
             _db_guard: db_guard,
         }
+    }
+}
+
+async fn setup_test_user(db: &PgPool) -> TestUser {
+    let username = "test_user";
+    let password = "test_password";
+
+    // TODO: grant super admin permissions to test_user after the role system implemented
+
+    sqlx::query!(
+        r#"
+    INSERT INTO users (username, password) VALUES ($1, $2)
+    "#,
+        username,
+        password
+    )
+    .execute(db)
+    .await
+    .expect("Failed to insert test user");
+
+    TestUser {
+        username: username.to_string(),
+        password: password.to_string(),
     }
 }
 
