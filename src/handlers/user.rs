@@ -80,12 +80,13 @@ pub async fn register_user(
                 access_token,
                 refresh_token,
                 ..
-            } = create_session(
+            } = create_or_update_session(
                 &state.db,
                 jwt_secret,
                 *access_token_ttl,
                 *refresh_token_ttl,
                 user.id,
+                None,
             )
             .await?;
 
@@ -186,12 +187,13 @@ pub async fn login(
     }
 
     // create session
-    let credentials = create_session(
+    let credentials = create_or_update_session(
         &state.db,
         jwt_secret,
         *access_token_ttl,
         *refresh_token_ttl,
         user.id,
+        None,
     )
     .await?;
 
@@ -199,12 +201,13 @@ pub async fn login(
 }
 
 #[instrument(skip(db, jwt_secret))]
-async fn create_session(
+async fn create_or_update_session(
     db: &PgPool,
     jwt_secret: &str,
     access_token_ttl: std::time::Duration,
     refresh_token_ttl: std::time::Duration,
     user_id: i64,
+    previous_token_hash: Option<String>,
 ) -> Result<TokenCredentials> {
     let access_token_expires_at = chrono::Utc::now() + access_token_ttl;
     let refresh_token_expires_at = chrono::Utc::now() + refresh_token_ttl;
@@ -220,19 +223,45 @@ async fn create_session(
     // issue access token
     let access_token = JwtToken::new(user_id, access_token_expires_at).issue(jwt_secret)?;
 
-    // create session in database
-    sqlx::query!(
-        r#"
-        INSERT INTO sessions (user_id, refresh_token_hash, expires_at)
-        VALUES ($1, $2, $3)
-    "#,
-        user_id,
-        refresh_token_hash,
-        refresh_token_expires_at,
-    )
-    .execute(db)
-    .await
-    .context("Failed to execute query")?;
+    if let Some(previous_token_hash) = previous_token_hash {
+        // update the session
+        sqlx::query!(
+            r#"
+            UPDATE sessions
+            SET
+                refresh_token_hash = $1,
+                expires_at = $2
+            WHERE refresh_token_hash = $3
+            "#,
+            refresh_token_hash,
+            refresh_token_expires_at,
+            previous_token_hash,
+        )
+        .execute(db)
+        .await
+        .context("Failed to execute query")?;
+
+        event!(
+            Level::INFO,
+            "Refresh token for user {}, new session exp timestamp is {}",
+            user_id,
+            refresh_token_expires_at.to_string()
+        );
+    } else {
+        // create session
+        sqlx::query!(
+            r#"
+            INSERT INTO sessions (user_id, refresh_token_hash, expires_at)
+            VALUES ($1, $2, $3)
+            "#,
+            user_id,
+            refresh_token_hash,
+            refresh_token_expires_at,
+        )
+        .execute(db)
+        .await
+        .context("Failed to execute query")?;
+    }
 
     Ok(TokenCredentials {
         access_token: access_token.to_string(),
@@ -330,45 +359,19 @@ pub async fn refresh_token(
         return Err(AppError::SessionNotFound(old_refresh_token_hash));
     };
 
-    // TODO: merge duplicated logic with the login handler
-
-    let refresh_token_expires_at = chrono::Utc::now() + *refresh_token_ttl;
-    let access_token_expires_at = chrono::Utc::now() + *access_token_ttl;
-
-    // issue new tokens
-    let new_refresh_token =
-        JwtToken::new(session.user_id, refresh_token_expires_at).issue(jwt_secret)?;
-    let new_refresh_token_hash = {
-        let hash_bytes = Sha256::digest(&new_refresh_token);
-        format!("{hash_bytes:x}")
-    };
-
-    let new_access_token =
-        JwtToken::new(session.user_id, access_token_expires_at).issue(jwt_secret)?;
-
-    // update the token hash field in session column
-    sqlx::query!(
-        r#"
-        UPDATE sessions
-        SET
-            refresh_token_hash = $1,
-            expires_at = $2
-        WHERE refresh_token_hash = $3
-    "#,
-        new_refresh_token_hash,
-        refresh_token_expires_at,
-        old_refresh_token_hash,
-    )
-    .execute(&state.db)
-    .await
-    .context("Failed to execute query")?;
-
-    event!(
-        Level::INFO,
-        "Refresh token for user {}, new session exp timestamp is {}",
+    let TokenCredentials {
+        access_token: new_access_token,
+        refresh_token: new_refresh_token,
+        ..
+    } = create_or_update_session(
+        &state.db,
+        jwt_secret,
+        *access_token_ttl,
+        *refresh_token_ttl,
         session.user_id,
-        refresh_token_expires_at.to_string()
-    );
+        Some(old_refresh_token_hash),
+    )
+    .await?;
 
     Ok(Json(RefreshResponse {
         access_token: new_access_token,
