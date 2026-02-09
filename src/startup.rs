@@ -18,7 +18,7 @@ pub struct Application {
 }
 
 impl Application {
-    #[instrument(name = "build_server")]
+    #[instrument(name = "build_server", skip(cfg))]
     pub async fn build(cfg: &Settings) -> anyhow::Result<Self> {
         let host = &cfg.server.host;
         let port = cfg.server.port;
