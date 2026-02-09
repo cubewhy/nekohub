@@ -26,7 +26,8 @@ async fn register_user_success_with_valid_payload() {
     assert_eq!(
         res.status(),
         StatusCode::CREATED,
-        "Register response status is not 201 CREATED"
+        "Register response status is not 201 CREATED, response={}",
+        res.text().await.expect("Failed to recv res body")
     );
 
     // make sure there is an username field in the response
@@ -39,5 +40,53 @@ async fn register_user_success_with_valid_payload() {
     assert!(
         res_json.as_object().unwrap().contains_key("username"),
         "Response json doesn't contains the username field"
+    );
+}
+
+#[tokio::test]
+async fn failure_when_username_conflict() {
+    let app = TestApp::new().await;
+
+    let username = "some_random_username";
+    let password = "some_random_password";
+
+    // /user/register
+    let res = app
+        .http_client
+        .post(format!("{}/user/register", app.base_url))
+        .json(&json!({
+            "username": username,
+            "password": password
+        }))
+        .send()
+        .await
+        .expect("Failed to register user");
+
+    // make sure the operation success
+    assert_eq!(
+        res.status(),
+        StatusCode::CREATED,
+        "Register response status is not 201 CREATED, response={}",
+        res.text().await.expect("Failed to recv res body")
+    );
+
+    // create another user
+    let res = app
+        .http_client
+        .post(format!("{}/user/register", app.base_url))
+        .json(&json!({
+            "username": username,
+            "password": password
+        }))
+        .send()
+        .await
+        .expect("Failed to register user");
+
+    // make sure the operation success
+    assert_eq!(
+        res.status(),
+        StatusCode::CONFLICT,
+        "Register response status is not 409 CONFLICT, response={}",
+        res.text().await.expect("Failed to recv res body")
     );
 }
