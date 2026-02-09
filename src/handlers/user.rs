@@ -1,13 +1,16 @@
 use anyhow::Context;
 use argon2::{Argon2, PasswordHash, PasswordHasher, PasswordVerifier, password_hash::SaltString};
 use axum::{Json, extract::State, http::StatusCode};
+use chrono::{DateTime, Utc};
+use jsonwebtoken::{EncodingKey, Header};
+use sha2::{Digest, Sha256};
 use sqlx::PgPool;
 use std::sync::Arc;
 use tracing::{Level, event, instrument};
 
 use crate::{
     error::{AppError, Result},
-    startup::AppState,
+    startup::{AppState, AuthState},
     telemetry::spawn_blocking_with_tracing,
 };
 
@@ -30,6 +33,12 @@ pub async fn register_user(
     Json(payload): Json<RegisterUserModel>,
 ) -> Result<(StatusCode, Json<RegisterUserResponse>)> {
     let RegisterUserModel { username, password } = payload;
+    let AuthState {
+        access_token_ttl,
+        refresh_token_ttl,
+        jwt_secret,
+    } = &state.auth;
+
     if password.is_empty() {
         // empty password
         return Err(AppError::EmptyPassword);
@@ -69,7 +78,14 @@ pub async fn register_user(
             let TokenCredentials {
                 access_token,
                 refresh_token,
-            } = create_session(&state.db, user.id).await?;
+            } = create_session(
+                &state.db,
+                jwt_secret,
+                *access_token_ttl,
+                *refresh_token_ttl,
+                user.id,
+            )
+            .await?;
 
             let json = RegisterUserResponse {
                 username,
@@ -113,6 +129,11 @@ pub async fn login(
     Json(payload): Json<LoginModel>,
 ) -> Result<Json<LoginResponse>> {
     let username = payload.username;
+    let AuthState {
+        jwt_secret,
+        access_token_ttl,
+        refresh_token_ttl,
+    } = &state.auth;
 
     // get the user in the database
     let user = sqlx::query!(
@@ -160,13 +181,84 @@ pub async fn login(
     }
 
     // create session
-    let credentials = create_session(&state.db, user.id).await?;
+    let credentials = create_session(
+        &state.db,
+        jwt_secret,
+        *access_token_ttl,
+        *refresh_token_ttl,
+        user.id,
+    )
+    .await?;
 
     Ok(Json(LoginResponse { credentials }))
 }
 
-async fn create_session(db: &PgPool, user_id: i64) -> Result<TokenCredentials> {
-    // TODO: insert to sessions table
+async fn create_session(
+    db: &PgPool,
+    jwt_secret: &str,
+    access_token_ttl: std::time::Duration,
+    refresh_token_ttl: std::time::Duration,
+    user_id: i64,
+) -> Result<TokenCredentials> {
+    let access_token_expires_at = chrono::Utc::now() + access_token_ttl;
+    let refresh_token_expires_at = chrono::Utc::now() + refresh_token_ttl;
 
-    Err(AppError::Internal(anyhow::anyhow!("Not implemented yet")))
+    // issue refresh token
+    let refresh_token = JwtToken::new(user_id, refresh_token_expires_at).issue(jwt_secret)?;
+
+    let refresh_token_hash = {
+        let hash_bytes = Sha256::digest(&refresh_token);
+        format!("{hash_bytes:x}")
+    };
+
+    // issue access token
+    let access_token = JwtToken::new(user_id, access_token_expires_at).issue(jwt_secret)?;
+
+    // create session in database
+    sqlx::query!(
+        r#"
+        INSERT INTO sessions (user_id, refresh_token_hash, expires_at)
+        VALUES ($1, $2, $3)
+    "#,
+        user_id,
+        refresh_token_hash,
+        refresh_token_expires_at,
+    )
+    .execute(db)
+    .await
+    .context("Failed to execute query")?;
+
+    Ok(TokenCredentials {
+        access_token: access_token.to_string(),
+        refresh_token,
+    })
+}
+
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+struct JwtToken {
+    exp: usize,
+    iat: usize,
+
+    user_id: i64,
+}
+
+impl JwtToken {
+    pub fn new(user_id: i64, exp_at: DateTime<Utc>) -> Self {
+        let now = Utc::now();
+
+        Self {
+            exp: exp_at.timestamp() as usize,
+            iat: now.timestamp() as usize,
+            user_id,
+        }
+    }
+
+    pub fn issue(&self, secret: &str) -> Result<String> {
+        let encoding_key = EncodingKey::from_secret(secret.as_ref());
+        let header = Header::default();
+        let token =
+            jsonwebtoken::encode(&header, self, &encoding_key).context("Failed to issue jwt")?;
+
+        Ok(token)
+    }
 }

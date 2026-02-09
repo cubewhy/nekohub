@@ -1,9 +1,12 @@
+use std::time::Duration;
+
 use config::Config;
 
 #[derive(Debug, serde::Deserialize)]
 pub struct Settings {
     pub server: ServerConfig,
     pub database: DatabaseConfig,
+    pub auth: AuthConfig,
 }
 
 impl Settings {
@@ -43,4 +46,13 @@ fn default_port() -> u16 {
 #[derive(Debug, serde::Deserialize)]
 pub struct DatabaseConfig {
     pub url: String,
+}
+
+#[derive(Debug, serde::Deserialize)]
+pub struct AuthConfig {
+    pub jwt_secret: String,
+    #[serde(with = "humantime_serde")]
+    pub refresh_token_ttl: Duration,
+    #[serde(with = "humantime_serde")]
+    pub access_token_ttl: Duration,
 }

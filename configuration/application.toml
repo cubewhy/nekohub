@@ -4,3 +4,8 @@ port = "8080"
 
 [database]
 url = "postgres://postgres:password@localhost:5432/nekohub"
+
+[auth]
+jwt_secret = "please-modify-me-in-production"
+refresh_token_ttl = "15d"
+access_token_ttl = "15m"

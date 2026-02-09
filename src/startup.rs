@@ -35,7 +35,14 @@ impl Application {
         sqlx::migrate!("./migrations").run(&pool).await?;
 
         // Initial state
-        let state = AppState { db: pool };
+        let state = AppState {
+            db: pool,
+            auth: AuthState {
+                jwt_secret: cfg.auth.jwt_secret.clone(),
+                refresh_token_ttl: cfg.auth.refresh_token_ttl,
+                access_token_ttl: cfg.auth.access_token_ttl,
+            },
+        };
 
         let state = Arc::new(state);
 
@@ -78,4 +85,12 @@ impl Application {
 #[derive(Debug)]
 pub struct AppState {
     pub db: PgPool,
+    pub auth: AuthState,
+}
+
+#[derive(Debug)]
+pub struct AuthState {
+    pub jwt_secret: String,
+    pub refresh_token_ttl: std::time::Duration,
+    pub access_token_ttl: std::time::Duration,
 }
