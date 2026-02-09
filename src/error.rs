@@ -33,7 +33,7 @@ impl IntoResponse for AppError {
             Self::BadCredentials { username, exists } => {
                 if *exists {
                     tracing::info!(
-                        "User {username} attempt to login, but rejected with reason bad password"
+                        "User {username} attempt to login, but rejected with reason: bad password"
                     );
                 } else {
                     tracing::debug!(
