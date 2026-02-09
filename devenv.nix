@@ -13,6 +13,7 @@
     sqlx-cli
     bash
     git
+    pre-commit
   ];
 
   # https://devenv.sh/languages/
@@ -28,14 +29,11 @@
     OPENSSL_INCLUDE_DIR = "${pkgs.openssl.dev}/include";
   };
 
-  git-hooks.hooks.sqlx-prepare = {
-    enable = true;
-    name = "update sqlx offline cache";
-    entry = "bash -c 'cargo sqlx prepare -- --all-targets && git add .sqlx'";
-    files = "\\.(rs|sql)$";
-    language = "system";
-    pass_filenames = false;
-  };
+  enterShell = ''
+    pre-commit install
+  '';
+
+  # Note: do not add git hooks config in devenv.nix
 
   # See full reference at https://devenv.sh/reference/options/
 }
