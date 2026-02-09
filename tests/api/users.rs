@@ -235,3 +235,59 @@ async fn login_success_with_correct_credentials_provided() {
         body
     );
 }
+
+#[tokio::test]
+async fn login_failure_with_incorrect_credentials_provided() {
+    let app = TestApp::new().await;
+
+    let username = app.test_user.username;
+    let password = "not_the_correct_password";
+
+    // we can use the test_user now
+    // login with the test_user credentials
+    let res = app
+        .http_client
+        .post(format!("{}/user/login", app.base_url))
+        .json(&json!({
+            "username": username,
+            "password": password
+        }))
+        .send()
+        .await
+        .expect("Failed to send login request");
+
+    assert_eq!(
+        res.status(),
+        StatusCode::UNAUTHORIZED,
+        "Login status code is not 401 UNAUTHORIZED"
+    );
+}
+
+#[tokio::test]
+async fn login_failure_with_no_existent_user() {
+    let app = TestApp::new().await;
+
+    let username = "not_exist";
+    let password = "not_the_correct_password";
+
+    // we can use the test_user now
+    // login with the test_user credentials
+    let res = app
+        .http_client
+        .post(format!("{}/user/login", app.base_url))
+        .json(&json!({
+            "username": username,
+            "password": password
+        }))
+        .send()
+        .await
+        .expect("Failed to send login request");
+
+    // Note: this should be no differance with the incorrect password path
+    // for increment security.
+    assert_eq!(
+        res.status(),
+        StatusCode::UNAUTHORIZED,
+        "Login status code is not 401 UNAUTHORIZED"
+    );
+}
