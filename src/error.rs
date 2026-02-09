@@ -17,7 +17,7 @@ impl IntoResponse for AppError {
                 tracing::info!(
                     "User try to register a new account with conflict username {username}"
                 );
-                StatusCode::BAD_REQUEST
+                StatusCode::CONFLICT
             }
             Self::Internal(e) => {
                 tracing::error!("{e:#}");

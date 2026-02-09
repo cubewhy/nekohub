@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use anyhow::Context;
 use argon2::{Argon2, PasswordHasher, password_hash::SaltString};
-use axum::{Json, extract::State, response::IntoResponse};
+use axum::{Json, extract::State, http::StatusCode, response::IntoResponse};
 use tracing::instrument;
 
 use crate::{
@@ -26,7 +26,7 @@ pub struct RegisterUserResponse {
 pub async fn register_user(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<RegisterUserModel>,
-) -> Result<Json<RegisterUserResponse>> {
+) -> Result<(StatusCode, Json<RegisterUserResponse>)> {
     let RegisterUserModel { username, password } = payload;
     let hashed_password = spawn_blocking_with_tracing(move || {
         let salt = SaltString::generate(&mut argon2::password_hash::rand_core::OsRng);
@@ -57,7 +57,7 @@ pub async fn register_user(
 
     // https://stackoverflow.com/questions/68360932/rust-sqlx-handle-insert-on-conflict
     match insert_result {
-        Ok(_) => Ok(Json(RegisterUserResponse { username })),
+        Ok(_) => Ok((StatusCode::CREATED, Json(RegisterUserResponse { username }))),
 
         Err(sqlx::Error::Database(db_err)) if db_err.code().as_deref() == Some("23505") => {
             return Err(AppError::UserAlreadyExists(username));

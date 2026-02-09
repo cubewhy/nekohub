@@ -41,6 +41,16 @@ async fn register_user_success_with_valid_payload() {
         res_json.as_object().unwrap().contains_key("username"),
         "Response json doesn't contains the username field"
     );
+
+    let user_option = sqlx::query!("SELECT (id) FROM users WHERE username = $1", username)
+        .fetch_optional(&app.db)
+        .await
+        .expect("Failed to query db");
+
+    assert!(
+        user_option.is_some(),
+        "Service didn't create user in database, which is not expected"
+    );
 }
 
 #[tokio::test]
