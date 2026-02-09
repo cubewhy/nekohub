@@ -7,7 +7,7 @@ use tracing::{Level, event, instrument};
 
 use crate::{
     configuration::Settings,
-    handlers::{login, register_user},
+    handlers::{login, refresh_token, register_user},
 };
 
 #[derive(Debug)]
@@ -74,6 +74,7 @@ impl Application {
             .layer(TraceLayer::new_for_http())
             .route("/user/register", post(register_user))
             .route("/user/login", post(login))
+            .route("/user/refresh", post(refresh_token))
             .with_state(self.state.clone())
     }
 

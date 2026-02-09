@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        UPDATE sessions\n        SET\n            refresh_token_hash = $1,\n            expires_at = $2\n        WHERE refresh_token_hash = $3\n    ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Timestamptz",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "376272b26949d3c12e5becaf4ea9d8f977bef6f9bf944017e33221cc3ed95508"
+}

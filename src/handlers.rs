@@ -1,4 +1,3 @@
 mod user;
 
-pub use user::{login, register_user};
-
+pub use user::{login, refresh_token, register_user};

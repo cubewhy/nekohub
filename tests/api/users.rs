@@ -317,10 +317,9 @@ async fn refresh_success_with_valid_refresh_token() {
     let res = app
         .http_client
         .post(format!("{}/user/refresh", app.base_url))
-        .header(
-            "Authorization",
-            format!("Bearer {}", credentials.refresh_token),
-        )
+        .json(&json!({
+            "refresh_token": credentials.refresh_token,
+        }))
         .send()
         .await
         .expect("Failed to send refresh request");
@@ -354,10 +353,54 @@ async fn refresh_success_with_valid_refresh_token() {
     let res = app
         .http_client
         .post(format!("{}/user/refresh", app.base_url))
-        .header(
-            "Authorization",
-            format!("Bearer {}", credentials.refresh_token),
-        )
+        .json(&json!({
+            "refresh_token": credentials.refresh_token,
+        }))
+        .send()
+        .await
+        .expect("Failed to send refresh request");
+
+    assert_eq!(
+        res.status(),
+        StatusCode::UNAUTHORIZED,
+        "Refresh API status code is not 401 UNAUTHORIZED"
+    );
+}
+
+#[tokio::test]
+async fn refresh_failure_with_invalid_jwt() {
+    let app = TestApp::new().await;
+
+    // refresh the token
+    let res = app
+        .http_client
+        .post(format!("{}/user/refresh", app.base_url))
+        .json(&json!({
+            "refresh_token": "lol it is invalid",
+        }))
+        .send()
+        .await
+        .expect("Failed to send refresh request");
+
+    // Why this returns 400 not 401?
+    // The service logic checks the jwt validation before refresh, if the check fails, the api
+    // will returns 400 BAD_REQUEST instead of 401 UNAUTHORIZED.
+    assert_eq!(
+        res.status(),
+        StatusCode::BAD_REQUEST,
+        "Refresh API status code is not 400 BAD_REQUEST"
+    );
+
+    // try to refresh with a jwt that is not an refresh token
+    let credentials = app.auth_test_user().await;
+
+    // refresh the token
+    let res = app
+        .http_client
+        .post(format!("{}/user/refresh", app.base_url))
+        .json(&json!({
+            "refresh_token": credentials.access_token, // this 100% not a refresh token
+        }))
         .send()
         .await
         .expect("Failed to send refresh request");

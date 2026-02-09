@@ -12,6 +12,12 @@ pub enum AppError {
     #[error("Bad cerdentials")]
     BadCredentials { username: String, exists: bool },
 
+    #[error("Session not found")]
+    SessionNotFound(String),
+
+    #[error("Bad refresh token")]
+    BadRefreshToken(#[from] jsonwebtoken::errors::Error),
+
     #[error("Internal Server Error")]
     Internal(#[from] anyhow::Error),
 }
@@ -41,6 +47,14 @@ impl IntoResponse for AppError {
                     );
                 }
                 StatusCode::UNAUTHORIZED
+            }
+            Self::SessionNotFound(refresh_token_hash) => {
+                tracing::error!("Session with refresh token hash {refresh_token_hash} not found");
+                StatusCode::UNAUTHORIZED
+            }
+            Self::BadRefreshToken(e) => {
+                tracing::error!("User try to refresh session with an invalid refresh token: {e:#}");
+                StatusCode::BAD_REQUEST
             }
             Self::Internal(e) => {
                 tracing::error!("{e:#}");
