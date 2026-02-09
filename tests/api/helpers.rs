@@ -37,9 +37,11 @@ impl TestApp {
 
         // build the configuration
         let cfg = {
-            let mut orig =
-                Settings::try_load(&["configuration/application.toml", "configuration/test.toml"])
-                    .expect("Failed to load test config");
+            let mut orig = Settings::try_load(&[
+                "configuration/application.toml".to_string(),
+                "configuration/test.toml".to_string(),
+            ])
+            .expect("Failed to load test config");
 
             // apply random port cfg
             orig.server.port = 0;

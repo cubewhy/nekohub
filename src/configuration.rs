@@ -8,10 +8,10 @@ pub struct Settings {
 
 impl Settings {
     pub fn try_load_single(file: &str) -> Result<Self, config::ConfigError> {
-        Self::try_load(&[file])
+        Self::try_load(&[file.to_string()])
     }
 
-    pub fn try_load(files: &[&str]) -> Result<Self, config::ConfigError> {
+    pub fn try_load(files: &[String]) -> Result<Self, config::ConfigError> {
         let mut settings = Config::builder().add_source(config::Environment::with_prefix("APP"));
 
         for file_name in files {

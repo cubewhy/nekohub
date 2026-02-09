@@ -8,3 +8,5 @@ devenv.local.yaml
 # direnv
 .direnv
 
+/configuration/override.toml
+/configuration/override.yaml
