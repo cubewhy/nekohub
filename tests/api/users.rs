@@ -305,3 +305,66 @@ async fn login_failure_with_no_existent_user() {
         "Login status code is not 401 UNAUTHORIZED"
     );
 }
+
+#[tokio::test]
+async fn refresh_success_with_valid_refresh_token() {
+    let app = TestApp::new().await;
+
+    // authorize the test user first
+    let credentials = app.auth_test_user().await;
+
+    // refresh the token
+    let res = app
+        .http_client
+        .post(format!("{}/user/refresh", app.base_url))
+        .header(
+            "Authorization",
+            format!("Bearer {}", credentials.refresh_token),
+        )
+        .send()
+        .await
+        .expect("Failed to send refresh request");
+
+    assert_eq!(
+        res.status(),
+        StatusCode::OK,
+        "Refresh API status code is not 200 OK"
+    );
+
+    // the access_token and refresh_token field should exist in the response body
+    let body: serde_json::Value = res
+        .json()
+        .await
+        .expect("Failed to receive login response body");
+
+    assert!(body.is_object(), "Response body should be an object");
+    let body = body.as_object().unwrap();
+    assert!(
+        body.contains_key("access_token"),
+        "No access_token field exists in auth response. response={:?}",
+        body
+    );
+    assert!(
+        body.contains_key("refresh_token"),
+        "No refresh_token field exists in auth response. response={:?}",
+        body
+    );
+
+    // the old refresh token should be revoked, expected 401 UNAUTHORIZED
+    let res = app
+        .http_client
+        .post(format!("{}/user/refresh", app.base_url))
+        .header(
+            "Authorization",
+            format!("Bearer {}", credentials.refresh_token),
+        )
+        .send()
+        .await
+        .expect("Failed to send refresh request");
+
+    assert_eq!(
+        res.status(),
+        StatusCode::UNAUTHORIZED,
+        "Refresh API status code is not 401 UNAUTHORIZED"
+    );
+}
