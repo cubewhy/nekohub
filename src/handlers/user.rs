@@ -1,15 +1,14 @@
 use anyhow::Context;
 use argon2::{Argon2, PasswordHash, PasswordHasher, PasswordVerifier, password_hash::SaltString};
 use axum::{Json, extract::State, http::StatusCode};
-use chrono::{DateTime, Utc};
-use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation};
+use jsonwebtoken::{DecodingKey, Validation};
 use sha2::{Digest, Sha256};
 use sqlx::PgPool;
 use std::sync::Arc;
 use tracing::{Level, event, instrument};
-use uuid::Uuid;
 
 use crate::{
+    auth::JwtClaims,
     error::{AppError, Result},
     startup::{AppState, AuthState},
     telemetry::spawn_blocking_with_tracing,
@@ -213,7 +212,7 @@ async fn create_or_update_session(
     let refresh_token_expires_at = chrono::Utc::now() + refresh_token_ttl;
 
     // issue refresh token
-    let refresh_token = JwtToken::new(user_id, refresh_token_expires_at).issue(jwt_secret)?;
+    let refresh_token = JwtClaims::new(user_id, refresh_token_expires_at).issue(jwt_secret)?;
 
     let refresh_token_hash = {
         let hash_bytes = Sha256::digest(&refresh_token);
@@ -221,7 +220,7 @@ async fn create_or_update_session(
     };
 
     // issue access token
-    let access_token = JwtToken::new(user_id, access_token_expires_at).issue(jwt_secret)?;
+    let access_token = JwtClaims::new(user_id, access_token_expires_at).issue(jwt_secret)?;
 
     if let Some(previous_token_hash) = previous_token_hash {
         // update the session
@@ -272,37 +271,6 @@ async fn create_or_update_session(
     })
 }
 
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
-struct JwtToken {
-    exp: usize,
-    iat: usize,
-    jti: Uuid,
-
-    user_id: i64,
-}
-
-impl JwtToken {
-    pub fn new(user_id: i64, exp_at: DateTime<Utc>) -> Self {
-        let now = Utc::now();
-
-        Self {
-            exp: exp_at.timestamp() as usize,
-            iat: now.timestamp() as usize,
-            jti: Uuid::new_v4(),
-            user_id,
-        }
-    }
-
-    pub fn issue(&self, secret: &str) -> Result<String> {
-        let encoding_key = EncodingKey::from_secret(secret.as_ref());
-        let header = Header::default();
-        let token =
-            jsonwebtoken::encode(&header, self, &encoding_key).context("Failed to issue jwt")?;
-
-        Ok(token)
-    }
-}
-
 #[derive(serde::Serialize)]
 pub struct RefreshResponse {
     access_token: String,
@@ -328,7 +296,7 @@ pub async fn refresh_token(
         jwt_secret,
     } = &state.auth;
 
-    let validation_res = jsonwebtoken::decode::<JwtToken>(
+    let validation_res = jsonwebtoken::decode::<JwtClaims>(
         &old_refresh_token,
         &DecodingKey::from_secret(state.auth.jwt_secret.as_ref()),
         &Validation::default(),

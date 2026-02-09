@@ -18,6 +18,15 @@ pub enum AppError {
     #[error("Bad refresh token")]
     BadRefreshToken(#[from] jsonwebtoken::errors::Error),
 
+    #[error("Authorize required in this request")]
+    MissingToken,
+
+    #[error("Unsupported token type")]
+    UnsupportedTokenType,
+
+    #[error("Invalid token")]
+    InvalidToken,
+
     #[error("Internal Server Error")]
     Internal(#[from] anyhow::Error),
 }
@@ -46,6 +55,9 @@ impl IntoResponse for AppError {
                         "An unknown (not existent) user try to auth with username {username}"
                     );
                 }
+                StatusCode::UNAUTHORIZED
+            }
+            Self::MissingToken | Self::UnsupportedTokenType | Self::InvalidToken => {
                 StatusCode::UNAUTHORIZED
             }
             Self::SessionNotFound(refresh_token_hash) => {
