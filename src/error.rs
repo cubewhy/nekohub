@@ -6,6 +6,9 @@ pub enum AppError {
     #[error("User with username {0} already exists")]
     UserAlreadyExists(String),
 
+    #[error("User try to register with an empty password")]
+    EmptyPassword,
+
     #[error("Internal Server Error")]
     Internal(#[from] anyhow::Error),
 }
@@ -18,6 +21,11 @@ impl IntoResponse for AppError {
                     "User try to register a new account with conflict username {username}"
                 );
                 StatusCode::CONFLICT
+            }
+            Self::EmptyPassword => {
+                // There is no data provided in this logging message, so we keep its level debug
+                tracing::debug!("User try to register with an empty password");
+                StatusCode::BAD_REQUEST
             }
             Self::Internal(e) => {
                 tracing::error!("{e:#}");

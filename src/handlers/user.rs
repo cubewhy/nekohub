@@ -1,8 +1,7 @@
-use std::sync::Arc;
-
 use anyhow::Context;
 use argon2::{Argon2, PasswordHasher, password_hash::SaltString};
 use axum::{Json, extract::State, http::StatusCode, response::IntoResponse};
+use std::sync::Arc;
 use tracing::instrument;
 
 use crate::{
@@ -28,6 +27,11 @@ pub async fn register_user(
     Json(payload): Json<RegisterUserModel>,
 ) -> Result<(StatusCode, Json<RegisterUserResponse>)> {
     let RegisterUserModel { username, password } = payload;
+    if password.is_empty() {
+        // empty password
+        return Err(AppError::EmptyPassword);
+    }
+
     let hashed_password = spawn_blocking_with_tracing(move || {
         let salt = SaltString::generate(&mut argon2::password_hash::rand_core::OsRng);
         let argon2 = Argon2::default();
@@ -69,7 +73,16 @@ pub async fn register_user(
     }
 }
 
-#[instrument(name = "authorize_user")]
-pub async fn login() -> impl IntoResponse {
+#[derive(serde::Deserialize)]
+pub struct LoginModel {
+    username: String,
+    password: String,
+}
+
+#[instrument(name = "authorize_user", skip(state, payload))]
+pub async fn login(
+    State(state): State<Arc<AppState>>,
+    Json(payload): Json<LoginModel>,
+) -> impl IntoResponse {
     "it just works (login)"
 }
