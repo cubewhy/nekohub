@@ -1,5 +1,5 @@
 use sqlx::Executor;
-use std::sync::LazyLock;
+use std::{sync::LazyLock, time::Duration};
 
 use nekohub::{
     configuration::Settings,
@@ -86,7 +86,10 @@ impl TestApp {
         let base_url = format!("http://127.0.0.1:{port}");
 
         // create the http client
-        let http_client = reqwest::Client::new();
+        let http_client = reqwest::Client::builder()
+            .timeout(Duration::from_secs(2))
+            .build()
+            .expect("Failed to build reqwest client");
 
         Self {
             _handle: handle,
