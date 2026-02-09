@@ -1,10 +1,11 @@
+use argon2::{Argon2, PasswordHasher, password_hash::SaltString};
 use sqlx::Executor;
 use std::{sync::LazyLock, time::Duration};
 
 use nekohub::{
     configuration::Settings,
     startup::Application,
-    telemetry::{get_subscriber, init_subscriber},
+    telemetry::{get_subscriber, init_subscriber, spawn_blocking_with_tracing},
 };
 use sqlx::{Connection, PgConnection, PgPool};
 use tokio::task::JoinHandle;
@@ -102,18 +103,34 @@ impl TestApp {
     }
 }
 
+async fn hash_password(password: String) -> String {
+    spawn_blocking_with_tracing(move || {
+        let salt = SaltString::generate(&mut argon2::password_hash::rand_core::OsRng);
+        let argon2 = Argon2::default();
+
+        argon2
+            .hash_password(password.as_bytes(), &salt)
+            .expect("Failed to hash password")
+            .to_string()
+    })
+    .await
+    .expect("Failed to wait hash pasword task finish")
+}
+
 async fn setup_test_user(db: &PgPool) -> TestUser {
     let username = "test_user";
     let password = "test_password";
 
     // TODO: grant super admin permissions to test_user after the role system implemented
 
+    let hashed_password = hash_password(password.to_string()).await;
+
     sqlx::query!(
         r#"
     INSERT INTO users (username, password) VALUES ($1, $2)
     "#,
         username,
-        password
+        hashed_password,
     )
     .execute(db)
     .await
