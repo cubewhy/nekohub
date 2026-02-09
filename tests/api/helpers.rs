@@ -1,4 +1,5 @@
 use argon2::{Argon2, PasswordHasher, password_hash::SaltString};
+use serde_json::json;
 use sqlx::Executor;
 use std::{sync::LazyLock, time::Duration};
 
@@ -26,7 +27,6 @@ static TRACING: LazyLock<()> = LazyLock::new(|| {
 pub struct TestUser {
     pub username: String,
     pub password: String,
-    // TODO: add token field after login api implemented
 }
 
 pub struct TestApp {
@@ -101,6 +101,32 @@ impl TestApp {
             _db_guard: db_guard,
         }
     }
+
+    pub async fn password_auth(&self, username: &str, password: &str) -> UserCredentials {
+        let res = self
+            .http_client
+            .post(format!("{}/user/login", self.base_url))
+            .json(&json!({
+                "username": username,
+                "password": password
+            }))
+            .send()
+            .await
+            .expect("Failed to send login request");
+
+        res.json().await.expect("Failed to receive auth response")
+    }
+
+    pub async fn auth_test_user(&self) -> UserCredentials {
+        self.password_auth(&self.test_user.username, &self.test_user.password)
+            .await
+    }
+}
+
+#[derive(serde::Deserialize)]
+pub struct UserCredentials {
+    pub access_token: String,
+    pub refresh_token: String,
 }
 
 async fn hash_password(password: String) -> String {
