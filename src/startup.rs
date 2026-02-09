@@ -35,7 +35,7 @@ impl Application {
         sqlx::migrate!("./migrations").run(&pool).await?;
 
         // Initial state
-        let state = AppState { pool };
+        let state = AppState { db: pool };
 
         let state = Arc::new(state);
 
@@ -77,5 +77,5 @@ impl Application {
 
 #[derive(Debug)]
 pub struct AppState {
-    pub pool: PgPool,
+    pub db: PgPool,
 }

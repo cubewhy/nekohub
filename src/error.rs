@@ -9,6 +9,9 @@ pub enum AppError {
     #[error("User try to register with an empty password")]
     EmptyPassword,
 
+    #[error("Bad cerdentials")]
+    BadCredentials { username: String, exists: bool },
+
     #[error("Internal Server Error")]
     Internal(#[from] anyhow::Error),
 }
@@ -26,6 +29,18 @@ impl IntoResponse for AppError {
                 // There is no data provided in this logging message, so we keep its level debug
                 tracing::debug!("User try to register with an empty password");
                 StatusCode::BAD_REQUEST
+            }
+            Self::BadCredentials { username, exists } => {
+                if *exists {
+                    tracing::info!(
+                        "User {username} attempt to login, but rejected with reason bad password"
+                    );
+                } else {
+                    tracing::debug!(
+                        "An unknown (not existent) user try to auth with username {username}"
+                    );
+                }
+                StatusCode::UNAUTHORIZED
             }
             Self::Internal(e) => {
                 tracing::error!("{e:#}");

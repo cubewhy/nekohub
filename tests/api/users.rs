@@ -30,16 +30,30 @@ async fn register_user_success_with_valid_payload() {
         res.text().await.expect("Failed to recv res body")
     );
 
-    // make sure there is an username field in the response
     let res_json: serde_json::Value = res
         .json()
         .await
         .expect("Failed to receive register response json");
 
     assert!(res_json.is_object(), "Response json is not an object");
+
+    // make sure there is an username field in the response
     assert!(
         res_json.as_object().unwrap().contains_key("username"),
-        "Response json doesn't contains the username field"
+        "Response json doesn't contains the username field, response={:?}",
+        res_json,
+    );
+
+    // for UI/UX, the token should be contained in the register response
+    assert!(
+        res_json.as_object().unwrap().contains_key("access_token"),
+        "Response json doesn't contains the access_token field, response={:?}",
+        res_json,
+    );
+    assert!(
+        res_json.as_object().unwrap().contains_key("refresh_token"),
+        "Response json doesn't contains the refresh_token field, response={:?}",
+        res_json,
     );
 
     let user_option = sqlx::query!("SELECT (id) FROM users WHERE username = $1", username)
