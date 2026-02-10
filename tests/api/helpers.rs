@@ -121,6 +121,44 @@ impl TestApp {
         self.password_auth(&self.test_user.username, &self.test_user.password)
             .await
     }
+
+    /// Create a topic with tag "test"
+    pub async fn create_topic(
+        &self,
+        access_token: &str,
+        title: &str,
+        content: &str,
+        tags: Vec<String>,
+    ) -> Topic {
+        self.http_client
+            .post(format!("{}/topics/new", self.base_url))
+            .json(&json!({
+                "title": title,
+                "content": content,
+                "tags": tags,
+            }))
+            .header("Authorization", format!("Bearer {}", access_token))
+            .send()
+            .await
+            .expect("Failed to send create topic request")
+            .json()
+            .await
+            .expect("Failed to receive response json")
+    }
+}
+
+#[derive(Debug, serde::Deserialize)]
+pub struct Topic {
+    pub id: i64,
+    pub initial_post: Post,
+}
+
+#[derive(Debug, serde::Deserialize)]
+pub struct Post {
+    pub id: i64,
+    pub title: String,
+    pub content: String,
+    pub tags: Vec<String>,
 }
 
 #[derive(serde::Deserialize)]
