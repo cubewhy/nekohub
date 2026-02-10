@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n    -- insert user\n    WITH\n        inserted_user AS (\n            INSERT INTO users (username, password) VALUES ($1, $2)\n            RETURNING id\n        ),\n\n        -- insert admin role\n        inserted_role AS (\n            INSERT INTO roles (name, permissions) VALUES ('admin', '{management}')\n            RETURNING id\n        )\n\n        -- insert user_roles\n        INSERT INTO user_roles (user_id, role_id)\n        SELECT inserted_user.id, inserted_role.id\n        FROM inserted_user, inserted_role\n    ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "11aeaae3d552c661f4e43a2918ad3f7dcdd4b040ee3d0bb6b3a8b9ee0ad6a832"
+}

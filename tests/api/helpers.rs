@@ -147,13 +147,27 @@ async fn setup_test_user(db: &PgPool) -> TestUser {
     let username = "test_user";
     let password = "test_password";
 
-    // TODO: grant super admin permissions to test_user after the role system implemented
-
     let hashed_password = hash_password(password.to_string()).await;
 
     sqlx::query!(
         r#"
-    INSERT INTO users (username, password) VALUES ($1, $2)
+    -- insert user
+    WITH
+        inserted_user AS (
+            INSERT INTO users (username, password) VALUES ($1, $2)
+            RETURNING id
+        ),
+
+        -- insert admin role
+        inserted_role AS (
+            INSERT INTO roles (name, permissions) VALUES ('admin', '{management}')
+            RETURNING id
+        )
+
+        -- insert user_roles
+        INSERT INTO user_roles (user_id, role_id)
+        SELECT inserted_user.id, inserted_role.id
+        FROM inserted_user, inserted_role
     "#,
         username,
         hashed_password,
