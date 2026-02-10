@@ -80,7 +80,10 @@ async fn reply_success_with_valid_topic() {
     // reply the topic
     let res = app
         .http_client
-        .post(format!("{}/topics/{}/reply", app.base_url, topic.id))
+        .post(format!(
+            "{}/topics/{}/reply",
+            app.base_url, topic.initial_post.id
+        ))
         .json(&json!({
             "content": "LGTM too!"
         }))
