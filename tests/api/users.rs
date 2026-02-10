@@ -452,6 +452,10 @@ async fn success_get_user_info_with_valid_token() {
 
     // TODO: assert bio, avatar list after the systems implemented
 
-    let res_roles = body.get("username").expect("No username field in response");
-    assert!(res_roles.is_array(), "Roles field is not an array");
+    let res_roles = body.get("roles").expect("No username field in response");
+    assert!(
+        res_roles.is_array(),
+        "Roles field is not an array. Response={}",
+        res_roles
+    );
 }
