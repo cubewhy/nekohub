@@ -450,7 +450,7 @@ async fn success_get_user_info_with_valid_token() {
     let res_username = res_username.as_str().unwrap();
     assert_eq!(res_username, app.test_user.username);
 
-    // TODO: assert bio, avatar list after the systems implemented
+    // TODO: assert avatar list after the systems implemented
 
     let res_roles = body.get("roles").expect("No roles field in response");
     assert!(
