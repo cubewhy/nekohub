@@ -10,7 +10,7 @@ use tracing::{Level, event, instrument};
 
 use crate::{
     configuration::Settings,
-    handlers::{login, refresh_token, register_user, user_info},
+    handlers::{create_post_reply, create_topic, login, refresh_token, register_user, user_info},
 };
 
 #[derive(Debug)]
@@ -79,6 +79,8 @@ impl Application {
             .route("/user/login", post(login))
             .route("/user/refresh", post(refresh_token))
             .route("/user/info", get(user_info))
+            .route("/topics/new", post(create_topic))
+            .route("/topics/{topic_id}/reply", post(create_post_reply))
             .with_state(self.state.clone())
     }
 

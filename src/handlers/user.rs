@@ -353,7 +353,7 @@ pub struct UserInfoResponse {
     username: String,
     roles: sqlx::types::Json<Vec<RoleResponse>>,
     bio: Option<String>,
-    // TODO: response bio, avatar list (important, it is a list) after the systems implemented
+    // TODO: response avatar list (important, it is a list) after the systems implemented
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize, sqlx::Type)]
