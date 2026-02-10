@@ -411,3 +411,44 @@ async fn refresh_failure_with_invalid_jwt() {
         "Refresh API status code is not 401 UNAUTHORIZED"
     );
 }
+
+#[tokio::test]
+async fn success_get_user_info_with_valid_token() {
+    let app = TestApp::new().await;
+
+    // authorize the test user
+    let credentials = app.auth_test_user().await;
+
+    let res = app
+        .http_client
+        .get(format!("{}/user/info", app.base_url))
+        .header(
+            "Authorization",
+            format!("Bearer {}", credentials.access_token),
+        )
+        .send()
+        .await
+        .expect("Failed to send get user info request");
+
+    assert_eq!(
+        res.status(),
+        StatusCode::OK,
+        "Response status is not 200 OK"
+    );
+
+    let body = res
+        .json::<serde_json::Value>()
+        .await
+        .expect("Failed to receive response json");
+
+    assert!(body.is_object(), "Response body should be a json object");
+    let body = body.as_object().unwrap();
+
+    // assert username in the response json
+    let res_username = body.get("username").expect("No username field in response");
+    assert!(res_username.is_string(), "Username field is not a string");
+    let res_username = res_username.as_str().unwrap();
+    assert_eq!(res_username, app.test_user.username);
+
+    // TODO: assert role, bio, avatar list after the systems implemented
+}

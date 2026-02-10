@@ -351,7 +351,7 @@ pub async fn refresh_token(
 pub struct UserInfoResponse {
     id: i64,
     username: String,
-    // TODO: response role, bio after the systems implemented
+    // TODO: response role, bio, avatar list (important, it is a list) after the systems implemented
 }
 
 #[instrument(skip(state, claims))]
@@ -359,7 +359,6 @@ pub async fn user_info(
     claims: JwtClaims,
     State(state): State<Arc<AppState>>,
 ) -> Result<Json<UserInfoResponse>> {
-    // TODO: write tests for the user_info endpoint
     let user_id = claims.user_id;
 
     // query user in database
