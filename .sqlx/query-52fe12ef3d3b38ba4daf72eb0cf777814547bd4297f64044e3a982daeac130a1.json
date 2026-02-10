@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n    SELECT\n        u.id,\n        u.username,\n        COALESCE(\n            jsonb_agg(\n                jsonb_build_object(\n                    'name', r.name,\n                    'title', r.title,\n                    'permissions', r.permissions::text[]\n                )\n            ) FILTER (WHERE r.id IS NOT NULL),\n            '[]'\n        ) AS \"roles!: sqlx::types::Json<Vec<RoleResponse>>\"\n    FROM users AS u\n    LEFT JOIN user_roles ur\n        ON u.id = ur.user_id\n    LEFT JOIN roles r\n        ON ur.role_id = r.id\n    WHERE u.id = $1\n    GROUP BY u.id\n    ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "username",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "roles!: sqlx::types::Json<Vec<RoleResponse>>",
+        "type_info": "Jsonb"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "52fe12ef3d3b38ba4daf72eb0cf777814547bd4297f64044e3a982daeac130a1"
+}

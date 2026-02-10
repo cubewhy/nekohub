@@ -347,11 +347,18 @@ pub async fn refresh_token(
     }))
 }
 
-#[derive(serde::Serialize)]
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct UserInfoResponse {
     id: i64,
     username: String,
+    roles: sqlx::types::Json<Vec<RoleResponse>>,
     // TODO: response role, bio, avatar list (important, it is a list) after the systems implemented
+}
+
+#[derive(Debug, serde::Serialize, serde::Deserialize, sqlx::Type)]
+pub struct RoleResponse {
+    pub name: String,
+    pub title: Option<String>,
 }
 
 #[instrument(skip(state, claims))]
@@ -362,10 +369,29 @@ pub async fn user_info(
     let user_id = claims.user_id;
 
     // query user in database
-    let user = sqlx::query!(
+    let user = sqlx::query_as!(
+        UserInfoResponse,
         r#"
-    SELECT id, username FROM users
-    WHERE id = $1
+    SELECT
+        u.id,
+        u.username,
+        COALESCE(
+            jsonb_agg(
+                jsonb_build_object(
+                    'name', r.name,
+                    'title', r.title,
+                    'permissions', r.permissions::text[]
+                )
+            ) FILTER (WHERE r.id IS NOT NULL),
+            '[]'
+        ) AS "roles!: sqlx::types::Json<Vec<RoleResponse>>"
+    FROM users AS u
+    LEFT JOIN user_roles ur
+        ON u.id = ur.user_id
+    LEFT JOIN roles r
+        ON ur.role_id = r.id
+    WHERE u.id = $1
+    GROUP BY u.id
     "#,
         user_id
     )
@@ -373,8 +399,5 @@ pub async fn user_info(
     .await
     .context("Failed to execute query")?;
 
-    Ok(Json(UserInfoResponse {
-        id: user.id,
-        username: user.username,
-    }))
+    Ok(Json(user))
 }
