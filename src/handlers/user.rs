@@ -373,25 +373,11 @@ pub async fn user_info(
         UserInfoResponse,
         r#"
     SELECT
-        u.id,
-        u.username,
-        COALESCE(
-            jsonb_agg(
-                jsonb_build_object(
-                    'name', r.name,
-                    'title', r.title,
-                    'permissions', r.permissions::text[]
-                )
-            ) FILTER (WHERE r.id IS NOT NULL),
-            '[]'
-        ) AS "roles!: sqlx::types::Json<Vec<RoleResponse>>"
-    FROM users AS u
-    LEFT JOIN user_roles ur
-        ON u.id = ur.user_id
-    LEFT JOIN roles r
-        ON ur.role_id = r.id
-    WHERE u.id = $1
-    GROUP BY u.id
+        id as "id!",
+        username as "username!",
+        roles as "roles!: sqlx::types::Json<Vec<RoleResponse>>"
+    FROM user_info_view
+    WHERE id = $1
     "#,
         user_id
     )
