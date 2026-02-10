@@ -352,6 +352,7 @@ pub struct UserInfoResponse {
     id: i64,
     username: String,
     roles: sqlx::types::Json<Vec<RoleResponse>>,
+    bio: Option<String>,
     // TODO: response bio, avatar list (important, it is a list) after the systems implemented
 }
 
@@ -375,6 +376,7 @@ pub async fn user_info(
     SELECT
         id as "id!",
         username as "username!",
+        bio,
         roles as "roles!: sqlx::types::Json<Vec<RoleResponse>>"
     FROM user_info_view
     WHERE id = $1

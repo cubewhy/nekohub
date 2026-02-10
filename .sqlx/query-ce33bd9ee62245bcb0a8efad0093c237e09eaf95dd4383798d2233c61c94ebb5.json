@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n    SELECT\n        id as \"id!\",\n        username as \"username!\",\n        roles as \"roles!: sqlx::types::Json<Vec<RoleResponse>>\"\n    FROM user_info_view\n    WHERE id = $1\n    ",
+  "query": "\n    SELECT\n        id as \"id!\",\n        username as \"username!\",\n        bio,\n        roles as \"roles!: sqlx::types::Json<Vec<RoleResponse>>\"\n    FROM user_info_view\n    WHERE id = $1\n    ",
   "describe": {
     "columns": [
       {
@@ -15,6 +15,11 @@
       },
       {
         "ordinal": 2,
+        "name": "bio",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
         "name": "roles!: sqlx::types::Json<Vec<RoleResponse>>",
         "type_info": "Jsonb"
       }
@@ -27,8 +32,9 @@
     "nullable": [
       true,
       true,
+      true,
       true
     ]
   },
-  "hash": "f1cb45d6511b8d6f6cbaed7c02b460d3e696115ba16ec01175ca33c18c304d2d"
+  "hash": "ce33bd9ee62245bcb0a8efad0093c237e09eaf95dd4383798d2233c61c94ebb5"
 }
