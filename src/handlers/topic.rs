@@ -13,7 +13,11 @@ use crate::{
 };
 
 #[derive(Debug, serde::Deserialize)]
-pub struct CreateTopicModel {}
+pub struct CreateTopicModel {
+    title: String,
+    content: String,
+    tags: Vec<String>,
+}
 
 #[derive(Debug, serde::Serialize)]
 pub struct CreateTopicResponse {}
@@ -24,7 +28,19 @@ pub async fn create_topic(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<CreateTopicModel>,
 ) -> Result<Json<CreateTopicResponse>> {
-    // TODO: implement create topic api
+    let user_id = claims.user_id;
+    // create the post
+    let post = sqlx::query!(
+        r#"
+    INSERT INTO posts (owner, content)
+    VALUES ($1, $2)
+    "#,
+        user_id,
+        payload.content,
+    );
+
+    // TODO: create topic and tags
+
     Err(AppError::Internal(anyhow::anyhow!("Not implemented yet")))
 }
 
