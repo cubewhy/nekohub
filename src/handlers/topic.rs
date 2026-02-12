@@ -30,6 +30,13 @@ pub async fn create_topic(
     Json(payload): Json<CreateTopicModel>,
 ) -> Result<Json<CreateTopicResponse>> {
     let user_id = claims.user_id;
+
+    let mut transaction = state
+        .db
+        .begin()
+        .await
+        .context("Failed to start transaction")?;
+
     // create the post
     let _post = sqlx::query!(
         r#"
@@ -40,11 +47,17 @@ pub async fn create_topic(
         user_id,
         payload.content,
     )
-    .fetch_one(&state.db)
+    .fetch_one(&mut *transaction)
     .await
     .context("Failed to execute query")?;
 
     // TODO: create topic and tags
+
+    // TODO: remove this after the logic completely implemented
+    transaction
+        .rollback()
+        .await
+        .context("Failed to rollback transaction")?;
 
     Err(AppError::Internal(anyhow::anyhow!("Not implemented yet")))
 }
