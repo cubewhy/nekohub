@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use anyhow::Context;
 use axum::{
     Json,
     extract::{Path, State},
@@ -22,7 +23,7 @@ pub struct CreateTopicModel {
 #[derive(Debug, serde::Serialize)]
 pub struct CreateTopicResponse {}
 
-#[instrument(skip(state, payload))]
+#[instrument(skip(claims, state, payload))]
 pub async fn create_topic(
     claims: JwtClaims,
     State(state): State<Arc<AppState>>,
@@ -30,14 +31,18 @@ pub async fn create_topic(
 ) -> Result<Json<CreateTopicResponse>> {
     let user_id = claims.user_id;
     // create the post
-    let post = sqlx::query!(
+    let _post = sqlx::query!(
         r#"
     INSERT INTO posts (owner, content)
     VALUES ($1, $2)
+    RETURNING id
     "#,
         user_id,
         payload.content,
-    );
+    )
+    .fetch_one(&state.db)
+    .await
+    .context("Failed to execute query")?;
 
     // TODO: create topic and tags
 
