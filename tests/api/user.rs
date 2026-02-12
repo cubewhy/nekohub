@@ -463,3 +463,22 @@ async fn success_get_user_info_with_valid_token() {
     // Expected null since we don't have a bio yet
     assert!(res_bio.is_null(), "Bio field is not Null: {res_bio:?}");
 }
+
+#[tokio::test]
+async fn unauthorized_get_user_info_with_no_token() {
+    let app = TestApp::new().await;
+
+    let res = app
+        .http_client
+        .get(format!("{}/user/info", app.base_url))
+        // No token provided here
+        .send()
+        .await
+        .expect("Failed to send get user info request");
+
+    assert_eq!(
+        res.status(),
+        StatusCode::UNAUTHORIZED,
+        "Response status is not 401 UNAUTHORIZED"
+    );
+}
