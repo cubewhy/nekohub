@@ -68,7 +68,7 @@
             #: Javascript/Typescript {{{
             #: tags: javascript, typescript, js, ts, nodejs, npm, pnpm, yarn
             blackbox.languages.javascript = {
-              enable = true;
+              enable = false;
               #: Node.js package to use
               package = pkgs.nodejs;
               #: manager: available values ["npm" "pnpm" "yarn"]
