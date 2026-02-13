@@ -42,7 +42,7 @@
             blackbox.languages.rust = {
               enable = true;
               #: version: available values ["stable" "beta" "nightly" "nightly-<date>"]
-              version = "stable";
+              channel = "stable";
               components = ["rustc" "cargo" "clippy" "rustfmt" "rust-analyzer"];
               #: any rust targets, like x86_64-pc-windows-gnu, leave blank to use platform default
               #: the blackbox flake contains the Windows cross-compile workaround (pthreads).
