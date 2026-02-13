@@ -37,9 +37,6 @@
 
           #: Config {{{
           config = {
-            #: Note: change the options there
-            #: You can delete unused options
-
             #: Languages {{{
             #: Rust {{{
             blackbox.languages.rust = {
@@ -56,72 +53,12 @@
               ];
             };
             #: }}}
-
-            #: C/C++ {{{
-            blackbox.languages.c = {
-              enable = false;
-              #: compiler: available values ["gcc" "clang"]
-              compiler = "gcc";
-            };
-            #: }}}
-
-            #: Javascript/Typescript {{{
-            #: tags: javascript, typescript, js, ts, nodejs, npm, pnpm, yarn
-            blackbox.languages.javascript = {
-              enable = false;
-              #: Node.js package to use
-              package = pkgs.nodejs;
-              #: manager: available values ["npm" "pnpm" "yarn"]
-              manager = "npm";
-              #: Auto run `npm install` (or with other package managers) if package.json exist
-              autoInstall = true;
-            };
-            #: }}}
-
-            #: Java {{{
-            blackbox.languages.java = {
-              enable = false;
-              package = pkgs.jdk;
-
-              #: Java build tools
-              maven = {
-                enable = false;
-                package = pkgs.maven;
-              };
-
-              gradle = {
-                enable = false;
-                package = pkgs.gradle;
-              };
-            };
-            #: }}}
-
-            #: Golang {{{
-            blackbox.languages.go = {
-              enable = false;
-              version = "latest";
-              #: enabled installTools option to install gopls, delve, golangci-lint, gotools
-              installTools = false;
-            };
-            #: }}}
-
             #: }}}
 
             #: Libraries {{{
             blackbox.libraries = {
               #: OpenSSL {{{
-              openssl.enable = false;
-              #: }}}
-
-              #: Cuda: {{{
-              #: See https://nixos-cuda.org/ for enabling nix cuda cache
-              cuda = {
-                enable = false;
-                #: version: e.g.  [11, 12, 13]
-                version = "13";
-                #: Enable this to install nvidia_x11 package
-                withDrivers = true;
-              };
+              openssl.enable = true;
               #: }}}
             };
             #: }}}
