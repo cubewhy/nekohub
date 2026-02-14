@@ -77,6 +77,10 @@
           #: mkShell builtin options are available
           # shellHook = ''
           # '';
+
+          packages = [
+            pkgs.sqlx-cli
+          ];
         };
       });
   };
