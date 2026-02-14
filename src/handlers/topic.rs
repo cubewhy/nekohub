@@ -30,6 +30,7 @@ pub async fn create_topic(
     Json(payload): Json<CreateTopicModel>,
 ) -> Result<Json<CreateTopicResponse>> {
     let user_id = claims.user_id;
+    let tags = payload.tags;
 
     let mut transaction = state
         .db
@@ -49,11 +50,24 @@ pub async fn create_topic(
     )
     .fetch_one(&mut *transaction)
     .await
-    .context("Failed to execute query")?;
+    .context("Failed to execute create post query")?;
 
-    // TODO: create topic and tags
+    // create tags
+    sqlx::query!(
+        r#"
+    INSERT INTO tags (name)
+    SELECT * FROM UNNEST($1::text[])
+    ON CONFLICT (name) DO NOTHING
+    "#,
+        &tags[..]
+    )
+    .execute(&mut *transaction)
+    .await
+    .context("Failed to execute create tags query")?;
 
-    // TODO: remove this after the logic completely implemented
+    // TODO: insert into topics and topic_tags table
+
+    // TODO: remove the rollback statement after the logic completely implemented
     transaction
         .rollback()
         .await
