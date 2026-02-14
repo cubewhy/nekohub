@@ -43,7 +43,7 @@
               enable = true;
               #: version: available values ["stable" "beta" "nightly" "nightly-<date>"]
               channel = "stable";
-              components = ["rustc" "cargo" "clippy" "rustfmt" "rust-analyzer"];
+              components = ["rustc" "cargo" "clippy" "rustfmt" "rust-analyzer" "rust-src"];
               #: any rust targets, like x86_64-pc-windows-gnu, leave blank to use platform default
               #: the blackbox flake contains the Windows cross-compile workaround (pthreads).
               #: But please notice that you may still need to tackle with 3rd party libraries like
